@@ -77,11 +77,11 @@ class SimpleSwitch(app_manager.RyuApp):
     def _to_command(self,table,command):
         return table << 8 | command 
 
-    def  nx_ipv6_add_flow(self,dp,rule):
+    def  nx_ipv6_add_flow(self,dp,rule,actions):
         command = self._to_command(0, dp.ofproto.OFPFC_ADD)  
 
-        actions = []
-        actions.append(dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_NORMAL)) 
+        #actions = []
+        #actions.append(dp.ofproto_parser.OFPActionOutput(dp.ofproto.OFPP_NORMAL)) 
 
         _rule = nx_match.ClsRule()
         _rule.set_dl_type(ether.ETH_TYPE_IPV6)
@@ -122,36 +122,35 @@ class SimpleSwitch(app_manager.RyuApp):
 
         actions = [datapath.ofproto_parser.OFPActionOutput(out_port)]
         if out_port != ofproto.OFPP_FLOOD:
-            self.add_flow(datapath, msg.in_port, dst, [datapath.ofproto_parser.OFPActionOutput(datapath.ofproto.OFPP_NORMAL)])
-           #self.add_flow(datapath, msg.in_port, dst, actions)
-        
-        #add a ipv6 flow table:        
-        if _eth_type == ether.ETH_TYPE_IPV6:
-            #print _eth_type
-            pkt = Packet(array('B',msg.data))          
-            for packet in pkt:
-                if isinstance(packet,array):
-                    pass
-                else:
-                    if packet.protocol_name=='ipv6':
-                        ipv6_packet=packet
-                    else:
+            #self.add_flow(datapath, msg.in_port, dst, [datapath.ofproto_parser.OFPActionOutput(datapath.ofproto.OFPP_NORMAL)])
+            self.add_flow(datapath, msg.in_port, dst, actions)        
+            #add a ipv6 flow table:        
+            if _eth_type == ether.ETH_TYPE_IPV6:
+                #print _eth_type
+                pkt = Packet(array('B',msg.data))          
+                for packet in pkt:
+                    if isinstance(packet,array):
                         pass
-            ipv6_src=self._binary_to_ipv6_format(ipv6_packet.src)
-            ipv6_dst=self._binary_to_ipv6_format(ipv6_packet.dst)
-            print ipv6_src,ipv6_dst
-            '''
-            # judge if src and dst addr is special 
-            # eg: src [0,0,0,0] dst begin with 0xff01 or 0x ff02 
-            if ipv6_src == [0,0,0,0] or ipv6_dst[0]&0xff010000 == 0xff010000 or ipv6_dst[0]&0xff020000 == 0xff020000:
-                print 'ipv6 reserved address\n' 
-            #elif ipv6_dst[0]&0xfe800000 == 0xfe800000:
-            #    print 'ipv6 dst address is Link-Local address'
-            else:
-            '''                      
-            rule={'ipv6_src':ipv6_src,'ipv6_dst':ipv6_dst}
-            self.nx_ipv6_add_flow(datapath,rule)
-            print 'add a ipv6 flow entry'  
+                    else:
+                        if packet.protocol_name=='ipv6':
+                            ipv6_packet=packet
+                        else:
+                            pass
+                ipv6_src=self._binary_to_ipv6_format(ipv6_packet.src)
+                ipv6_dst=self._binary_to_ipv6_format(ipv6_packet.dst)
+                print ipv6_src,ipv6_dst
+                '''
+                # judge if src and dst addr is special 
+                # eg: src [0,0,0,0] dst begin with 0xff01 or 0x ff02 
+                if ipv6_src == [0,0,0,0] or ipv6_dst[0]&0xff010000 == 0xff010000 or ipv6_dst[0]&0xff020000 == 0xff020000:
+                    print 'ipv6 reserved address\n' 
+                #elif ipv6_dst[0]&0xfe800000 == 0xfe800000:
+                #    print 'ipv6 dst address is Link-Local address'
+                else:
+                '''                      
+                rule={'ipv6_src':ipv6_src,'ipv6_dst':ipv6_dst}
+                self.nx_ipv6_add_flow(datapath,rule,actions)
+                print 'add a ipv6 flow entry'  
             
            
         out = datapath.ofproto_parser.OFPPacketOut(
